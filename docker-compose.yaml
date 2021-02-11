@@ -1,0 +1,27 @@
+version: '3'
+services:
+    httpd:
+        image: bucket/httpd:${BUILD_TAG:-latest}
+        build:
+            context: ./httpd/
+        environment:
+            - SERVER_NAME=${SERVER_NAME:?err}           # export SERVER_NAME=${HOSTNAME}
+            - SERVER_ALIAS=${SERVER_ALIAS:-localhost}   # export SERVER_ALIAS=<DNS alias>
+        ports:
+            - ${HTTPD_PORT:-80}:80
+        volumes:
+            - ./httpd/assets/html:/usr/local/apache2/htdocs/html                # mount local html directory to aid development
+            - ${ARCHIVE_DIR:-/tmp/bucket}:/usr/local/apache2/htdocs/archive     # share disk between httpd and archive
+    archive:
+        image: bucket/archive:${BUILD_TAG:-latest}
+        build:
+            context: ./http-bucket/
+        environment:
+            - ARCHIVE_DIR=${ARCHIVE_DIR:-/tmp/bucket}
+            - ARCHIVE_URI
+        expose:
+            - 5000          # allow HTTPD to proxy requests
+        ports:
+            - 5000:5000     # aid development
+        volumes:
+            - ${ARCHIVE_DIR:-/tmp/bucket}:${ARCHIVE_DIR:-/tmp/bucket}           # share disk between httpd and archive
